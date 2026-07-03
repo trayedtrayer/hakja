@@ -129,8 +129,12 @@ export function NotificationBell() {
                   }`}
                   onClick={() => {
                     if (!n.isRead) handleMarkRead(n.id, n.tripId);
-                    if (n.tripId) {
-                      setOpen(false);
+                    setOpen(false);
+                    if (n.type === "invite") {
+                      // Приглашения нужно принять в центре уведомлений,
+                      // а не открывать закрытую поездку напрямую.
+                      router.push("/notifications");
+                    } else if (n.tripId) {
                       router.push(`/trips/${n.tripId}`);
                     }
                   }}
