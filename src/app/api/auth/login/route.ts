@@ -35,6 +35,10 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Automatically link any pending invitations to this user upon login
+    const { linkPendingInvitations } = await import("@/lib/notifications");
+    await linkPendingInvitations(user.id, user.email);
+
     const token = signToken({ id: user.id, email: user.email, name: user.name });
     await setAuthCookie(token);
 

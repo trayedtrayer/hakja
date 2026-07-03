@@ -20,19 +20,35 @@ export async function POST(req: NextRequest) {
     const { email, name, password } = parsed.data;
 
     const [existing] = await db.select().from(users).where(eq(users.email, email));
+    const passwordHash = await bcrypt.hash(password, 10);
+    let user;
+
     if (existing) {
-      return NextResponse.json(
-        { error: "Пользователь с таким email уже существует" },
-        { status: 409 },
-      );
+      if (existing.passwordHash === "temp_hash") {
+        // Take over existing placeholder account created via direct add
+        const [updated] = await db
+          .update(users)
+          .set({ name, passwordHash })
+          .where(eq(users.id, existing.id))
+          .returning();
+        user = updated;
+      } else {
+        return NextResponse.json(
+          { error: "Пользователь с таким email уже существует" },
+          { status: 409 },
+        );
+      }
+    } else {
+      const [inserted] = await db
+        .insert(users)
+        .values({ email, name, passwordHash })
+        .returning();
+      user = inserted;
     }
 
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const [user] = await db
-      .insert(users)
-      .values({ email, name, passwordHash })
-      .returning();
+    // Automatically link any pending invitations to this new/updated user
+    const { linkPendingInvitations } = await import("@/lib/notifications");
+    await linkPendingInvitations(user.id, user.email);
 
     const token = signToken({ id: user.id, email: user.email, name: user.name });
     await setAuthCookie(token);
