@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
         type: notifications.type,
         email: notifications.email,
         emailSent: notifications.emailSent,
+        actionUrl: notifications.actionUrl,
         isRead: notifications.isRead,
         readAt: notifications.readAt,
         createdAt: notifications.createdAt,

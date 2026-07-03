@@ -264,6 +264,7 @@ export const notifications = pgTable("notifications", {
   type: text("type").notNull().default("expense"), // "expense" | "participant" | "invite" | "system"
   email: text("email"), // email address the notification was sent to
   emailSent: boolean("email_sent").notNull().default(false),
+  actionUrl: text("action_url"), // optional URL/button action, e.g. /join/[token]
   isRead: boolean("is_read").notNull().default(false),
   readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),

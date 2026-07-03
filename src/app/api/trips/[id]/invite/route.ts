@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { trips, invitations, users, tripParticipants } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { trips, invitations } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { getCurrentUserOrThrow } from "@/lib/auth";
 import { v4 as uuid } from "uuid";
 import { notifyInvite } from "@/lib/notifications";
@@ -42,23 +42,6 @@ export async function POST(
       invitedByUserId: user.id,
       token,
     });
-
-    // If a user with this email already exists, link them to the trip immediately!
-    const [existingUser] = await db.select().from(users).where(eq(users.email, email));
-    if (existingUser) {
-      const [alreadyPart] = await db
-        .select()
-        .from(tripParticipants)
-        .where(and(eq(tripParticipants.tripId, id), eq(tripParticipants.userId, existingUser.id)));
-      if (!alreadyPart) {
-        await db.insert(tripParticipants).values({
-          tripId: id,
-          userId: existingUser.id,
-          role: "participant",
-        });
-      }
-      await db.update(invitations).set({ status: "accepted" }).where(eq(invitations.token, token));
-    }
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const inviteLink = `${baseUrl}/join/${token}`;

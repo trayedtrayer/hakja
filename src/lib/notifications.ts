@@ -15,6 +15,7 @@ export async function notifyUser(opts: {
   type: string;
   actorName: string;
   sendEmail?: boolean;
+  actionUrl?: string;
   emailData?: {
     to: string;
     toName: string;
@@ -43,6 +44,7 @@ export async function notifyUser(opts: {
     type: opts.type,
     email: opts.emailData?.to || null,
     emailSent,
+    actionUrl: opts.actionUrl || null,
   });
 }
 
@@ -157,6 +159,9 @@ export async function notifyInvite(opts: {
       type: "invite",
       actorName: opts.inviterName,
       sendEmail: false,
+      actionUrl: opts.inviteLink.startsWith("http")
+        ? new URL(opts.inviteLink).pathname
+        : opts.inviteLink,
     });
   }
 }

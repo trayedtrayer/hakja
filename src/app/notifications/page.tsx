@@ -8,6 +8,7 @@ import {
   markNotificationRead,
   markAllNotificationsRead,
   getSentEmails,
+  joinByToken,
 } from "@/lib/api";
 
 interface NotificationItem {
@@ -19,6 +20,7 @@ interface NotificationItem {
   type: string;
   email: string | null;
   emailSent: boolean;
+  actionUrl: string | null;
   isRead: boolean;
   createdAt: string;
 }
@@ -90,6 +92,26 @@ export default function NotificationsPage() {
       setUnreadCount(0);
     } catch {
       // ignore
+    }
+  };
+
+  const handleAcceptInvite = async (notification: NotificationItem) => {
+    try {
+      const token = notification.actionUrl?.split("/join/")[1];
+      if (!token) {
+        alert("В уведомлении нет ссылки приглашения. Откройте ссылку из email.");
+        return;
+      }
+
+      const data = await joinByToken(token);
+      await markNotificationRead(notification.id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === notification.id ? { ...n, isRead: true } : n)),
+      );
+      setUnreadCount((c) => Math.max(0, c - 1));
+      window.location.href = `/trips/${data.tripId}`;
+    } catch (err: any) {
+      alert(err.message || "Не удалось присоединиться к поездке");
     }
   };
 
@@ -172,7 +194,7 @@ export default function NotificationsPage() {
                 }`}
                 onClick={() => {
                   if (!n.isRead) handleMarkRead(n.id, n.tripId);
-                  if (n.tripId) router.push(`/trips/${n.tripId}`);
+                  if (n.type !== "invite" && n.tripId) router.push(`/trips/${n.tripId}`);
                 }}
               >
                 <span className="text-2xl shrink-0">{iconForType(n.type)}</span>
@@ -186,6 +208,19 @@ export default function NotificationsPage() {
                     )}
                   </div>
                   <p className="text-sm text-slate-600 mt-0.5">{n.message}</p>
+                  {n.type === "invite" && (
+                    <div className="mt-3">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAcceptInvite(n);
+                        }}
+                        className="inline-flex items-center rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-indigo-700"
+                      >
+                        Присоединиться к поездке
+                      </button>
+                    </div>
+                  )}
                   <div className="flex items-center gap-2 mt-1.5">
                     <span className="text-xs text-slate-400">
                       {new Date(n.createdAt).toLocaleString("ru-RU")}
