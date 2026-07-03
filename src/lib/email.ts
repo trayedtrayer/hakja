@@ -31,12 +31,25 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{
 
   if (smtpHost && smtpUser && smtpPass) {
     try {
-      const transporter = nodemailer.createTransport({
-        host: smtpHost,
-        port: parseInt(process.env.SMTP_PORT || "587", 10),
-        secure: process.env.SMTP_SECURE === "true",
-        auth: { user: smtpUser, pass: smtpPass },
-      });
+      const isGmail = smtpHost.toLowerCase().includes("gmail.com");
+      const portNum = parseInt(process.env.SMTP_PORT || "587", 10);
+      const cleanPass = smtpPass.replace(/\s+/g, ""); // strip spaces from Google app passwords
+
+      const transporter = nodemailer.createTransport(
+        isGmail
+          ? {
+              service: "gmail",
+              auth: { user: smtpUser, pass: cleanPass },
+              tls: { rejectUnauthorized: false },
+            }
+          : {
+              host: smtpHost,
+              port: portNum,
+              secure: portNum === 465 || process.env.SMTP_SECURE === "true",
+              auth: { user: smtpUser, pass: cleanPass },
+              tls: { rejectUnauthorized: false },
+            }
+      );
 
       await transporter.sendMail({
         from: fromAddress,
@@ -46,6 +59,7 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{
         text: opts.text || opts.subject,
       });
       delivered = true;
+      console.log(`Email successfully delivered to ${opts.to}`);
     } catch (err) {
       console.error("Email delivery failed, falling back to log:", err);
       delivered = false;

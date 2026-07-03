@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { getTrips, createTrip, createExpense } from "@/lib/api";
 import { TripCard } from "@/components/trip-card";
@@ -33,7 +33,30 @@ export default function HomePage() {
     city: "",
   });
 
-  const fetchTrips = useCallback(async () => {
+  // Load all trips on first mount (no filters)
+  useEffect(() => {
+    if (authLoading) return;
+    if (!user) {
+      setLoading(false);
+      return;
+    }
+
+    async function loadAll() {
+      try {
+        setLoading(true);
+        const data = await getTrips();
+        setTrips(data.trips || []);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    loadAll();
+  }, [authLoading, user]);
+
+  // Search only when button is clicked
+  const handleSearch = async () => {
     try {
       setLoading(true);
       const params = new URLSearchParams();
@@ -48,15 +71,7 @@ export default function HomePage() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
-
-  useEffect(() => {
-    if (!authLoading && user) {
-      fetchTrips();
-    } else if (!authLoading && !user) {
-      setLoading(false);
-    }
-  }, [authLoading, user, fetchTrips]);
+  };
 
   const handleCreateDemo = async () => {
     setDemoLoading(true);
@@ -83,7 +98,9 @@ export default function HomePage() {
         });
       }
 
-      await fetchTrips();
+      // Reload all trips after demo creation
+      const data = await getTrips();
+      setTrips(data.trips || []);
     } catch (err) {
       console.error(err);
     } finally {
@@ -154,7 +171,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <TripFilter filters={filters} onChange={setFilters} onSearch={fetchTrips} />
+      <TripFilter filters={filters} onChange={setFilters} onSearch={handleSearch} />
 
       {trips.length === 0 ? (
         <div className="text-center py-16 bg-white rounded-2xl border border-slate-200 shadow-sm p-8">

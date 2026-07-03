@@ -201,3 +201,39 @@ export async function notifyParticipantJoined(opts: {
       : undefined,
   });
 }
+
+/**
+ * Checks if there are any pending invitations for the given user's email
+ * and automatically links them into tripParticipants.
+ */
+export async function linkPendingInvitations(userId: string, email: string): Promise<void> {
+  try {
+    const { invitations } = await import("@/db/schema");
+    const pending = await db
+      .select()
+      .from(invitations)
+      .where(and(eq(invitations.email, email), eq(invitations.status, "pending")));
+
+    for (const inv of pending) {
+      const [already] = await db
+        .select()
+        .from(tripParticipants)
+        .where(and(eq(tripParticipants.tripId, inv.tripId), eq(tripParticipants.userId, userId)));
+
+      if (!already) {
+        await db.insert(tripParticipants).values({
+          tripId: inv.tripId,
+          userId: userId,
+          role: "participant",
+        });
+      }
+
+      await db
+        .update(invitations)
+        .set({ status: "accepted" })
+        .where(eq(invitations.id, inv.id));
+    }
+  } catch (err) {
+    console.error("linkPendingInvitations error:", err);
+  }
+}

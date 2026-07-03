@@ -29,8 +29,8 @@ export default function JoinPage() {
         setMessage("Вы успешно присоединились к поездке!");
         setTripId(data.tripId);
         setTimeout(() => {
-          router.push(`/trips/${data.tripId}`);
-        }, 2000);
+          window.location.href = `/trips/${data.tripId}`;
+        }, 1500);
       } catch (err: any) {
         setStatus("error");
         setMessage(err.message || "Не удалось присоединиться");
@@ -59,7 +59,7 @@ export default function JoinPage() {
             </p>
             {tripId && (
               <button
-                onClick={() => router.push(`/trips/${tripId}`)}
+                onClick={() => { window.location.href = `/trips/${tripId}`; }}
                 className="mt-4 bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 transition"
               >
                 Перейти к поездке

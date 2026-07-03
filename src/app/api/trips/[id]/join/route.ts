@@ -21,20 +21,30 @@ export async function POST(
       return NextResponse.json({ error: "Токен обязателен" }, { status: 400 });
     }
 
+    let validJoin = false;
+    let invId: string | null = null;
+
     const [invitation] = await db
       .select()
       .from(invitations)
-      .where(
-        and(
-          eq(invitations.tripId, id),
-          eq(invitations.token, token),
-          eq(invitations.status, "pending"),
-        ),
-      );
+      .where(and(eq(invitations.tripId, id), eq(invitations.token, token)));
 
-    if (!invitation) {
+    if (invitation) {
+      validJoin = true;
+      invId = invitation.id;
+    } else {
+      const [tripByCode] = await db
+        .select()
+        .from(trips)
+        .where(and(eq(trips.id, id), eq(trips.inviteCode, token)));
+      if (tripByCode) {
+        validJoin = true;
+      }
+    }
+
+    if (!validJoin) {
       return NextResponse.json(
-        { error: "Приглашение не найдено или уже использовано" },
+        { error: "Приглашение не найдено или ссылка недействительна" },
         { status: 404 },
       );
     }
@@ -51,10 +61,7 @@ export async function POST(
       );
 
     if (existing) {
-      return NextResponse.json(
-        { error: "Вы уже участник этой поездки" },
-        { status: 409 },
-      );
+      return NextResponse.json({ ok: true });
     }
 
     await db.insert(tripParticipants).values({
@@ -63,10 +70,12 @@ export async function POST(
       role: "participant",
     });
 
-    await db
-      .update(invitations)
-      .set({ status: "accepted" })
-      .where(eq(invitations.id, invitation.id));
+    if (invId) {
+      await db
+        .update(invitations)
+        .set({ status: "accepted" })
+        .where(eq(invitations.id, invId));
+    }
 
     // Notify the trip owner that someone joined
     const [trip] = await db.select().from(trips).where(eq(trips.id, id));

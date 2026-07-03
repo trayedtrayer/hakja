@@ -19,7 +19,13 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      window.location.href = "/";
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      if (redirect && redirect.startsWith("/")) {
+        window.location.href = redirect;
+      } else {
+        window.location.href = "/";
+      }
     } catch (err: any) {
       setError(err.message || "Ошибка входа");
     } finally {

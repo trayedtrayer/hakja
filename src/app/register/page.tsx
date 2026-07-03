@@ -20,7 +20,13 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(email, name, password);
-      window.location.href = "/";
+      const params = new URLSearchParams(window.location.search);
+      const redirect = params.get("redirect");
+      if (redirect && redirect.startsWith("/")) {
+        window.location.href = redirect;
+      } else {
+        window.location.href = "/";
+      }
     } catch (err: any) {
       setError(err.message || "Ошибка регистрации");
     } finally {
