@@ -20,8 +20,7 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       await register(email, name, password);
-      router.push("/");
-      router.refresh();
+      window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Ошибка регистрации");
     } finally {

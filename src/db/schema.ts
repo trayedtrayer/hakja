@@ -259,9 +259,13 @@ export const notifications = pgTable("notifications", {
   userId: uuid("user_id")
     .notNull()
     .references(() => users.id, { onDelete: "cascade" }),
+  title: text("title").notNull().default(""),
   message: text("message").notNull(),
-  type: text("type").notNull().default("expense"), // "expense" | "participant"
+  type: text("type").notNull().default("expense"), // "expense" | "participant" | "invite" | "system"
+  email: text("email"), // email address the notification was sent to
+  emailSent: boolean("email_sent").notNull().default(false),
   isRead: boolean("is_read").notNull().default(false),
+  readAt: timestamp("read_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -275,3 +279,16 @@ export const notificationsRelations = relations(notifications, ({ one }) => ({
     references: [users.id],
   }),
 }));
+
+// ── SentEmails (log of all sent emails for demo/inbox view) ──
+export const sentEmails = pgTable("sent_emails", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  to: text("to").notNull(),
+  toName: text("to_name"),
+  subject: text("subject").notNull(),
+  html: text("html").notNull(),
+  textContent: text("text_content"),
+  tripId: uuid("trip_id").references(() => trips.id, { onDelete: "cascade" }),
+  status: text("status").notNull().default("sent"), // "sent" | "logged" | "failed"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});

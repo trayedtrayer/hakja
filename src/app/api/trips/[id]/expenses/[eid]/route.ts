@@ -10,29 +10,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { getCurrentUserOrThrow } from "@/lib/auth";
 import { expenseSchema } from "@/lib/validations";
-
-async function notifyParticipants(
-  tripId: string,
-  actorUserId: string,
-  actorName: string,
-  message: string,
-) {
-  const parts = await db
-    .select({ userId: tripParticipants.userId })
-    .from(tripParticipants)
-    .where(eq(tripParticipants.tripId, tripId));
-
-  for (const p of parts) {
-    if (p.userId !== actorUserId) {
-      await db.insert(notifications).values({
-        tripId,
-        userId: p.userId,
-        message: `${actorName}: ${message}`,
-        type: "expense",
-      });
-    }
-  }
-}
+import { notifyExpenseChange } from "@/lib/notifications";
 
 // PUT /api/trips/[id]/expenses/[eid]
 export async function PUT(
@@ -170,12 +148,15 @@ export async function PUT(
       },
     });
 
-    await notifyParticipants(
-      id,
-      user.id,
-      user.name,
-      `обновил(а) трату "${category}"`,
-    );
+    await notifyExpenseChange({
+      tripId: id,
+      actorUserId: user.id,
+      actorName: user.name,
+      action: `обновил(а) трату "${category}"`,
+      category,
+      amount: String(amountNum),
+      currency,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {
@@ -245,12 +226,15 @@ export async function DELETE(
 
     await db.delete(expenses).where(eq(expenses.id, eid));
 
-    await notifyParticipants(
-      id,
-      user.id,
-      user.name,
-      `удалил(а) трату "${existing.category}"`,
-    );
+    await notifyExpenseChange({
+      tripId: id,
+      actorUserId: user.id,
+      actorName: user.name,
+      action: `удалил(а) трату "${existing.category}"`,
+      category: existing.category,
+      amount: String(existing.amount),
+      currency: existing.currency,
+    });
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { NotificationBell } from "@/components/notification-bell";
 
 export function Navigation() {
   const { user, loading, logout } = useAuth();
@@ -35,6 +36,7 @@ export function Navigation() {
                 + Новая поездка
               </Link>
               <span className="text-slate-500">|</span>
+              <NotificationBell />
               <span className="text-slate-700">{user.name}</span>
               <button
                 onClick={handleLogout}

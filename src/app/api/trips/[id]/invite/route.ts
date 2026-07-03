@@ -4,6 +4,7 @@ import { trips, invitations } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { getCurrentUserOrThrow } from "@/lib/auth";
 import { v4 as uuid } from "uuid";
+import { notifyInvite } from "@/lib/notifications";
 
 // POST /api/trips/[id]/invite — create invitation link
 export async function POST(
@@ -44,6 +45,15 @@ export async function POST(
 
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000";
     const inviteLink = `${baseUrl}/join/${token}`;
+
+    // Send invitation email + notification
+    await notifyInvite({
+      tripId: id,
+      inviterUserId: user.id,
+      inviterName: user.name,
+      recipientEmail: email,
+      inviteLink,
+    }).catch((err) => console.error("notifyInvite failed:", err));
 
     return NextResponse.json({ inviteLink, token });
   } catch (error: any) {

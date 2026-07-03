@@ -19,8 +19,7 @@ export default function LoginPage() {
     setLoading(true);
     try {
       await login(email, password);
-      router.push("/");
-      router.refresh();
+      window.location.href = "/";
     } catch (err: any) {
       setError(err.message || "Ошибка входа");
     } finally {

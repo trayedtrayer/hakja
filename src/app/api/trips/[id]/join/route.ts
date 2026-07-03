@@ -3,6 +3,8 @@ import { db } from "@/db";
 import { invitations, tripParticipants } from "@/db/schema";
 import { eq, and } from "drizzle-orm";
 import { getCurrentUserOrThrow } from "@/lib/auth";
+import { trips, users } from "@/db/schema";
+import { notifyParticipantJoined } from "@/lib/notifications";
 
 // POST /api/trips/[id]/join — join via token
 export async function POST(
@@ -65,6 +67,24 @@ export async function POST(
       .update(invitations)
       .set({ status: "accepted" })
       .where(eq(invitations.id, invitation.id));
+
+    // Notify the trip owner that someone joined
+    const [trip] = await db.select().from(trips).where(eq(trips.id, id));
+    if (trip && trip.ownerId !== user.id) {
+      const [owner] = await db
+        .select()
+        .from(users)
+        .where(eq(users.id, trip.ownerId));
+      if (owner) {
+        await notifyParticipantJoined({
+          tripId: id,
+          ownerId: owner.id,
+          ownerName: owner.name,
+          ownerEmail: owner.email,
+          participantName: user.name,
+        }).catch((err) => console.error("notifyParticipantJoined failed:", err));
+      }
+    }
 
     return NextResponse.json({ ok: true });
   } catch (error: any) {

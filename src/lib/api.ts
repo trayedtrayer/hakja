@@ -120,6 +120,34 @@ export async function getNotifications(tripId: string) {
   return apiFetch(`/api/trips/${tripId}/notifications`);
 }
 
+// Global notifications (all trips)
+export async function getAllNotifications() {
+  return apiFetch(`/api/notifications`);
+}
+
+export async function markNotificationRead(notificationId: string) {
+  return apiFetch(`/api/notifications/${notificationId}`, {
+    method: "PATCH",
+  });
+}
+
+export async function markAllNotificationsRead() {
+  return apiFetch(`/api/notifications/read-all`, {
+    method: "POST",
+  });
+}
+
+export async function deleteNotification(notificationId: string) {
+  return apiFetch(`/api/notifications/${notificationId}`, {
+    method: "DELETE",
+  });
+}
+
+// Sent emails (demo inbox)
+export async function getSentEmails() {
+  return apiFetch(`/api/emails`);
+}
+
 // Summary
 export async function getSummary(tripId: string) {
   return apiFetch(`/api/trips/${tripId}/summary`);

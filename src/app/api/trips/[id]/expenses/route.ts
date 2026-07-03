@@ -11,30 +11,7 @@ import {
 import { eq, and } from "drizzle-orm";
 import { getCurrentUserOrThrow } from "@/lib/auth";
 import { expenseSchema } from "@/lib/validations";
-
-// Helper to create notifications for all participants except current user
-async function notifyParticipants(
-  tripId: string,
-  actorUserId: string,
-  actorName: string,
-  message: string,
-) {
-  const parts = await db
-    .select({ userId: tripParticipants.userId })
-    .from(tripParticipants)
-    .where(eq(tripParticipants.tripId, tripId));
-
-  for (const p of parts) {
-    if (p.userId !== actorUserId) {
-      await db.insert(notifications).values({
-        tripId,
-        userId: p.userId,
-        message: `${actorName}: ${message}`,
-        type: "expense",
-      });
-    }
-  }
-}
+import { notifyExpenseChange } from "@/lib/notifications";
 
 // GET /api/trips/[id]/expenses
 export async function GET(
@@ -228,13 +205,16 @@ export async function POST(
       },
     });
 
-    // Notify participants
-    await notifyParticipants(
-      id,
-      user.id,
-      user.name,
-      `добавил(а) трату "${category}" на сумму ${amountNum} ${currency}`,
-    );
+    // Notify participants via in-app + email
+    await notifyExpenseChange({
+      tripId: id,
+      actorUserId: user.id,
+      actorName: user.name,
+      action: `добавил(а) трату "${category}"`,
+      category,
+      amount: String(amountNum),
+      currency,
+    });
 
     return NextResponse.json({
       expense: {

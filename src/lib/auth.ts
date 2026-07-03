@@ -35,9 +35,17 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
   try {
     const cookieStore = await cookies();
     const token = cookieStore.get(COOKIE_NAME)?.value;
-    if (!token) return null;
-    return verifyToken(token);
-  } catch {
+    if (!token) {
+        console.log("getCurrentUser: no token found");
+        return null;
+    }
+    const user = verifyToken(token);
+    if (!user) {
+        console.log("getCurrentUser: token invalid");
+    }
+    return user;
+  } catch (e) {
+    console.log("getCurrentUser: error", e);
     return null;
   }
 }
